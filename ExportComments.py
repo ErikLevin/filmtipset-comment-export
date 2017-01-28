@@ -1,6 +1,7 @@
 import re
 import sys
 import urllib.request
+from datetime import datetime
 
 user_id = sys.argv[1]
 base_url = 'http://www.filmtipset.se/yourpage.cgi?page=commented_movies&member=' + user_id + '&offset='
@@ -16,11 +17,13 @@ with open('Filmtipset_comments.csv', 'wb') as output_file:
 
         comment_re = 'class=favoritetext>(.*?)</div>'
         title_re = '<b><i>Originaltitel:</i></b> (.*?)</div>'
+        date_re = '<span title="(\d{2}:\d{2} \d{1,2}/\d{1,2} \d{4})">'
         comment_matches = re.findall(comment_re, html_str, re.DOTALL)
         title_matches = re.findall(title_re, html_str, re.DOTALL)
+        date_matches = re.findall(date_re, html_str, re.DOTALL)
 
-        assert (len(comment_matches) == len(
-            title_matches))  # If we did not get equal number of titles and comments, something went wrong.
+        # If we did not get equal number of titles, comments, and dates, something went wrong.
+        assert (len(comment_matches) == len(title_matches) == len(date_matches))
 
         if (len(comment_matches) == 0):
             break  # This page was empty, we are done
@@ -30,6 +33,8 @@ with open('Filmtipset_comments.csv', 'wb') as output_file:
         for i in range(len(comment_matches)):
             comment_matches[i] = comment_matches[i].replace('\r\n',
                                                             ' ')  # Since we're making a csv, we can't really support newlines inside the elements...
-            output_file.write((title_matches[i] + "\t" + comment_matches[i] + '\n').encode('iso-8859-1'))
+            foo = datetime.strptime(date_matches[i], '%H:%M %d/%m %Y')
+            output_file.write(
+                (title_matches[i] + "\t" + comment_matches[i] + '\t' + str(foo) + '\n').encode('iso-8859-1'))
 
 print('Done!')
